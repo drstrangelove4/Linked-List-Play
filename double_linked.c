@@ -301,7 +301,7 @@ void print_next(dllist *next_node)
 void free_memory(dllist *root)
 // Searches for nodes down each side of the list and frees memory used by malloc.
 {
-    /* We need the recursive list to return something to signal root to call free on itself.
+    /* We need the recursive function to return something to signal root to call free on itself.
     We need to free the list from null pointer, backwards to root to avoid breaking the chain
     and leaving nodes floating in memory.*/
 
