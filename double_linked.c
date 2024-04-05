@@ -4,10 +4,9 @@
 
 // Todo
 /*
+- Switch root
 - Delete a node
-- Edit a node's value
 */
-
 
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -23,6 +22,7 @@ typedef struct
 {
     int return_int;
     int return_code;
+    dllist *node;
 } return_object;
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -36,6 +36,7 @@ return_object search_left(dllist *root, int search);
 return_object search_right(dllist *root, int search);
 void append_left(dllist *new_node, dllist *left_node);
 void append_right(dllist *new_node, dllist *right_node);
+void edit_node(dllist *root, int get, int edit);
 void free_memory(dllist *root);
 void insert_node(dllist *before_node, dllist *after_node);
 void print_next(dllist *next);
@@ -88,18 +89,6 @@ int main()
     print_previous(root);
     print_next(root);
 
-    // Search
-    return_object find = search(root, 10);
-    if (find.return_code == 1)
-    {
-        printf("Search not found\n\n");
-    }
-    else
-
-    {
-        printf("Search term found: %i\n\n", find.return_int);
-    }
-
     // Insert a new node between root and the next node it is pointing at
     // Create a new node
     dllist *insert_next = new_node(5, NULL, NULL);
@@ -108,6 +97,22 @@ int main()
     // Insert a node without saving it as a variable
     append_right(new_node(50, NULL, NULL), root);
     append_left(new_node(-30, NULL, NULL), root);
+
+    // Search
+    return_object find = search(root, 20);
+    if (find.return_code == 1)
+    {
+        printf("Search not found\n\n");
+    }
+    else
+
+    {
+
+        printf("Search term found: %i\n\n", find.return_int);
+    }
+
+    // Edit node through pointer
+    edit_node(root, 50, 100);
 
     // Print the new chain
     print_next(root);
@@ -169,8 +174,8 @@ void append_left(dllist *new_node, dllist *left_node)
 
 void insert_node(dllist *before_node, dllist *after_node)
 // Inserts a node into the list
-{    
-    // Set pointers of the new node 
+{
+    // Set pointers of the new node
     after_node->next = before_node->next;
     after_node->prev = before_node;
 
@@ -180,6 +185,24 @@ void insert_node(dllist *before_node, dllist *after_node)
     // Set pointer of next node's prev to new node
     after_node->next->prev = after_node;
 }
+
+// --------------------------------------------------------------------------------------------------------------------
+
+// Edit a node
+
+void edit_node(dllist *root, int get, int edit)
+// Searches for a node based upon the value held in that node and edits it.
+{
+    return_object results = search(root, get);
+    if (results.return_code != 0)
+    {
+        printf("Node not found.\n");
+        return;
+    }
+    results.node->number = edit;
+    return;
+}
+
 // --------------------------------------------------------------------------------------------------------------------
 
 // Search for X value
@@ -191,26 +214,24 @@ return_object search(dllist *root, int search)
     return_object left = search_left(root, search);
     return_object right = search_right(root, search);
 
-    return_object new_return;
-
     // If we find the object return its value and success code.
     if (left.return_int == search && left.return_code == 0)
     {
-        new_return.return_code = 0;
-        new_return.return_int = search;
+        return left;
     }
     else if (right.return_int == search && right.return_code == 0)
     {
-        new_return.return_code = 0;
-        new_return.return_int = search;
+        return right;
     }
     // If we don't find the object return an error code.
     else
     {
+        return_object new_return;
         new_return.return_code = 1;
         new_return.return_int = 0;
+
+        return new_return;
     }
-    return new_return;
 }
 
 return_object search_left(dllist *root, int search)
@@ -221,7 +242,8 @@ return_object search_left(dllist *root, int search)
     if (root->number == search)
     {
         new_return.return_code = 0;
-        new_return.return_int = search;
+        new_return.return_int = root->number;
+        new_return.node = root;
     }
     else if (root->prev == NULL)
     {
@@ -244,7 +266,8 @@ return_object search_right(dllist *root, int search)
     if (root->number == search)
     {
         new_return.return_code = 0;
-        new_return.return_int = search;
+        new_return.return_int = root->number;
+        new_return.node = root;
     }
     else if (root->next == NULL)
     {
@@ -301,7 +324,7 @@ void print_next(dllist *next_node)
 void free_memory(dllist *root)
 // Searches for nodes down each side of the list and frees memory used by malloc.
 {
-    /* We need the recursive function to return something to signal root to call free on itself.
+    /* We need the recursive list to return something to signal root to call free on itself.
     We need to free the list from null pointer, backwards to root to avoid breaking the chain
     and leaving nodes floating in memory.*/
 
@@ -346,3 +369,5 @@ int free_memory_right(dllist *next_pointer)
     free(next_pointer);
     return 0;
 }
+
+// --------------------------------------------------------------------------------------------------------------------
