@@ -1,19 +1,17 @@
 // Headers
+
 #include <stdio.h>
 #include <stdlib.h>
-
-// Todo
-/*
-- Switch root
-- Delete a node
-*/
+#include <stdbool.h>
 
 // --------------------------------------------------------------------------------------------------------------------
 
 // Custom Types
+
 typedef struct dllist
 {
     int number;
+    bool is_root;
     struct dllist *prev;
     struct dllist *next;
 } dllist;
@@ -28,14 +26,20 @@ typedef struct
 // --------------------------------------------------------------------------------------------------------------------
 
 // Signatures
+
+dllist *change_root(dllist *current_root, int new_root_value);
 dllist *new_node(int value, dllist *next_pointer, dllist *previous_pointer);
+
 int free_memory_left(dllist *prev_pointer);
 int free_memory_right(dllist *next_pointer);
+
 return_object search(dllist *root, int search);
 return_object search_left(dllist *root, int search);
 return_object search_right(dllist *root, int search);
+
 void append_left(dllist *new_node, dllist *left_node);
 void append_right(dllist *new_node, dllist *right_node);
+void delete_node(int node_number, dllist *current_root);
 void edit_node(dllist *root, int get, int edit);
 void free_memory(dllist *root);
 void insert_node(dllist *before_node, dllist *after_node);
@@ -46,79 +50,64 @@ void print_previous(dllist *previous);
 
 int main()
 {
-    // Using a function to return a pointer to a list element.
+    // Demo of my linked list functionality.
+
+    // Create a root node.
     dllist *root = new_node(0, NULL, NULL);
     if (root == NULL)
     {
         return 1;
     }
-    dllist *right = new_node(10, NULL, root);
-    if (right == NULL)
-    {
-        return 1;
-    }
-    dllist *left = new_node(-10, root, NULL);
-    if (left == NULL)
-    {
-        return 1;
-    }
+    root->is_root = true;
 
-    // Set the root to point at each list element
-    root->next = right;
-    root->prev = left;
+    // Create and prepend some nodes to the chain.
+    append_left(new_node(-10, NULL, NULL), root);
+    append_left(new_node(-20, NULL, NULL), root);
 
-    // Print all previous elements
+    // Print the current chain (prev).
+    print_previous(root);
+
+    // Create and append some nodes to the chain..
+    append_right(new_node(10, NULL, NULL), root);
+    append_right(new_node(20, NULL, NULL), root);
+
+    // Print the current chain (next).
+    print_next(root);
+
+    // Insert new nodes into the chain
+    insert_node(root->prev, new_node(-5, NULL, NULL));
+    insert_node(root, new_node(5, NULL, NULL));
+
+    printf("Chains after inserting nodes:\n");
     print_previous(root);
     print_next(root);
 
-    // Add a new element onto the right
-    dllist *new_right = new_node(20, NULL, NULL);
-    if (new_right == NULL)
-    {
-        return 1;
-    }
-    dllist *new_left = new_node(-20, NULL, NULL);
-    if (new_left == NULL)
-    {
-        return 1;
-    }
+    // Edit a node
+    edit_node(root, 20, 25);
+    edit_node(root, -20, -25);
 
-    // Add new nodes to the end of the chain.
-    append_left(new_left, root);
-    append_right(new_right, root);
+    printf("Chains after editing nodes:\n");
     print_previous(root);
     print_next(root);
 
-    // Insert a new node between root and the next node it is pointing at
-    // Create a new node
-    dllist *insert_next = new_node(5, NULL, NULL);
-    insert_node(root, insert_next);
+    // Delete a node
+    delete_node(-25, root);
+    delete_node(-10, root);
+    delete_node(25, root);
 
-    // Insert a node without saving it as a variable
-    append_right(new_node(50, NULL, NULL), root);
-    append_left(new_node(-30, NULL, NULL), root);
-
-    // Search
-    return_object find = search(root, 20);
-    if (find.return_code == 1)
-    {
-        printf("Search not found\n\n");
-    }
-    else
-
-    {
-
-        printf("Search term found: %i\n\n", find.return_int);
-    }
-
-    // Edit node through pointer
-    edit_node(root, 50, 100);
-
-    // Print the new chain
-    print_next(root);
+    printf("Chains after deleting nodes:\n");
     print_previous(root);
+    print_next(root);
 
-    // Free memory
+    // Change the root
+    root = change_root(root, -5);
+    printf("The new root is: %i\n\n", root->number);
+
+    printf("Chains after changing root\n");
+    print_previous(root);
+    print_next(root);
+
+    // Clear malloc'd memory
     free_memory(root);
 }
 
@@ -135,6 +124,7 @@ dllist *new_node(int value, dllist *next_pointer, dllist *previous_pointer)
     new->number = value;
     new->next = next_pointer;
     new->prev = previous_pointer;
+    new->is_root = false;
 
     return new;
 }
@@ -172,23 +162,50 @@ void append_left(dllist *new_node, dllist *left_node)
 
 // Insert Nodes
 
-void insert_node(dllist *before_node, dllist *after_node)
-// Inserts a node into the list
+void insert_node(dllist *before_node, dllist *new_node)
+// Inserts a nodes between elements into the list.
 {
+    // Check for NULL nodes.
+    if (before_node == NULL || new_node == NULL)
+    {
+        printf("Error: One of the nodes is NULL.\n");
+        return;
+    }
+
     // Set pointers of the new node
-    after_node->next = before_node->next;
-    after_node->prev = before_node;
+    new_node->next = before_node->next;
+    new_node->prev = before_node;
 
     // Set pointers of before node to point at inserted node
-    before_node->next = after_node;
+    before_node->next = new_node;
 
     // Set pointer of next node's prev to new node
-    after_node->next->prev = after_node;
+    new_node->next->prev = new_node;
 }
 
 // --------------------------------------------------------------------------------------------------------------------
 
-// Edit a node
+// Edit node properties
+
+dllist *change_root(dllist *current_root, int new_root_value)
+{
+    return_object new_root = search(current_root, new_root_value);
+    // Check for errors.
+    if (new_root.return_code != 0)
+    {
+        printf("There was no node with that value found!\n");
+        printf("The root has not been changed.\n");
+        return current_root;
+    }
+    else
+    {
+        // Change the root node.
+        current_root->is_root = false;
+        new_root.node->is_root = true;
+        dllist *ptr_root = new_root.node;
+        return ptr_root;
+    }
+}
 
 void edit_node(dllist *root, int get, int edit)
 // Searches for a node based upon the value held in that node and edits it.
@@ -319,6 +336,54 @@ void print_next(dllist *next_node)
 }
 
 // --------------------------------------------------------------------------------------------------------------------
+
+// Remove a singular node from the linked list.
+
+void delete_node(int node_number, dllist *current_root)
+{
+    return_object search_results = search(current_root, node_number);
+
+    // Check for valid node to delete.
+    if (search_results.return_code != 0)
+    {
+        printf("No node with that value has been found\n");
+        return;
+    }
+
+    // Check if the node is root
+    if (search_results.node->is_root)
+    {
+        printf("Cannot delete the root node.\n");
+        return;
+    }
+
+    // Set pointers
+    // If we are deleting a node at the end of the chain, set the next/prev node to point to NULL.
+    if (search_results.node->prev == NULL)
+    {
+        search_results.node->next->prev = NULL;
+    }
+    else if (search_results.node->next == NULL)
+    {
+        search_results.node->prev->next = NULL;
+    }
+    else
+    // Change pointers of to the found nodes next/prev to each other.
+    {
+        // Current next's previous should point to current previous instead of self.
+        search_results.node->next->prev = search_results.node->prev;
+        // Current previous's next should point to current next instead of self.
+        search_results.node->prev->next = search_results.node->next;
+    }
+
+    // Free the found node
+    free(search_results.node);
+
+    return;
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+
 // Free memory
 
 void free_memory(dllist *root)
@@ -328,8 +393,30 @@ void free_memory(dllist *root)
     We need to free the list from null pointer, backwards to root to avoid breaking the chain
     and leaving nodes floating in memory.*/
 
-    int left = free_memory_left(root->prev);
-    int right = free_memory_right(root->next);
+    int left, right;
+
+    // Free left side of the chain
+    if (root->prev != NULL)
+    {
+        left = free_memory_left(root->prev);
+    }
+    else
+    {
+        // If previous is NULL then we don't need to free anything.
+        left = 0;
+    }
+
+    // free right side of the chain
+    if (root->next != NULL)
+    {
+        right = free_memory_right(root->next);
+    }
+    else
+    {
+        // If next is NULL then we don't need to free anything.
+        right = 0;
+    }
+
     if (left == 0 && right == 0)
     {
         free(root);
